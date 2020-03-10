@@ -106,7 +106,7 @@ function onMessageArrived(message) {
 	/**
 	 * @private
 	 */
-	var localStorage = (function () {
+	var tempStorage = (function () {
 		var data = {};
 
 		return {
@@ -815,7 +815,7 @@ function onMessageArrived(message) {
 
 
 			// Load the local state, if any, from the saved version, only restore state relevant to this client.
-			for (var key in localStorage)
+			for (var key in tempStorage)
 				if (   key.indexOf("Sent:"+this._localKey) === 0 || key.indexOf("Received:"+this._localKey) === 0)
 					this.restore(key);
 		};
@@ -1121,11 +1121,11 @@ function onMessageArrived(message) {
 			default:
 				throw Error(format(ERROR.INVALID_STORED_DATA, [prefix+this._localKey+wireMessage.messageIdentifier, storedMessage]));
 			}
-			localStorage.setItem(prefix+this._localKey+wireMessage.messageIdentifier, JSON.stringify(storedMessage));
+			tempStorage.setItem(prefix+this._localKey+wireMessage.messageIdentifier, JSON.stringify(storedMessage));
 		};
 
 		ClientImpl.prototype.restore = function(key) {
-			var value = localStorage.getItem(key);
+			var value = tempStorage.getItem(key);
 			var storedMessage = JSON.parse(value);
 
 			var wireMessage = new WireMessage(storedMessage.type, storedMessage);
@@ -1274,13 +1274,13 @@ function onMessageArrived(message) {
 					if (this.connectOptions.cleanSession) {
 						for (var key in this._sentMessages) {
 							var sentMessage = this._sentMessages[key];
-							localStorage.removeItem("Sent:"+this._localKey+sentMessage.messageIdentifier);
+							tempStorage.removeItem("Sent:"+this._localKey+sentMessage.messageIdentifier);
 						}
 						this._sentMessages = {};
 
 						for (var key in this._receivedMessages) {
 							var receivedMessage = this._receivedMessages[key];
-							localStorage.removeItem("Received:"+this._localKey+receivedMessage.messageIdentifier);
+							tempStorage.removeItem("Received:"+this._localKey+receivedMessage.messageIdentifier);
 						}
 						this._receivedMessages = {};
 					}
@@ -1357,7 +1357,7 @@ function onMessageArrived(message) {
 					// If this is a re flow of a PUBACK after we have restarted receivedMessage will not exist.
 					if (sentMessage) {
 						delete this._sentMessages[wireMessage.messageIdentifier];
-						localStorage.removeItem("Sent:"+this._localKey+wireMessage.messageIdentifier);
+						tempStorage.removeItem("Sent:"+this._localKey+wireMessage.messageIdentifier);
 						if (this.onMessageDelivered)
 							this.onMessageDelivered(sentMessage.payloadMessage);
 					}
@@ -1376,7 +1376,7 @@ function onMessageArrived(message) {
 
 				case MESSAGE_TYPE.PUBREL:
 					var receivedMessage = this._receivedMessages[wireMessage.messageIdentifier];
-					localStorage.removeItem("Received:"+this._localKey+wireMessage.messageIdentifier);
+					tempStorage.removeItem("Received:"+this._localKey+wireMessage.messageIdentifier);
 					// If this is a re flow of a PUBREL after we have restarted receivedMessage will not exist.
 					if (receivedMessage) {
 						this._receiveMessage(receivedMessage);
@@ -1392,7 +1392,7 @@ function onMessageArrived(message) {
 				case MESSAGE_TYPE.PUBCOMP:
 					var sentMessage = this._sentMessages[wireMessage.messageIdentifier];
 					delete this._sentMessages[wireMessage.messageIdentifier];
-					localStorage.removeItem("Sent:"+this._localKey+wireMessage.messageIdentifier);
+					tempStorage.removeItem("Sent:"+this._localKey+wireMessage.messageIdentifier);
 					if (this.onMessageDelivered)
 						this.onMessageDelivered(sentMessage.payloadMessage);
 					break;
